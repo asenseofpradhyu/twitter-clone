@@ -4,10 +4,15 @@ import { BiHomeCircle, BiSearch, BiBell } from 'react-icons/bi'
 import { MdOutlineMailOutline, MdOutlineSupervisorAccount, MdOutlineAccountCircle } from 'react-icons/md'
 import { BsBookmark, BsCardList, BsCardChecklist } from 'react-icons/bs'
 import { Inter } from 'next/font/google'
+import { CredentialResponse, GoogleLogin } from '@react-oauth/google';
 const inter = Inter({ subsets: ['latin'] })
 
 // Local Imports
 import TweetCard from '@/components/TweetCard'
+import { useCallback } from 'react'
+import toast from 'react-hot-toast'
+import { graphqlClient } from '@/clients/api'
+import { verifyUserGoogleOAuthTokenQuery } from '@/graphql/query/user'
 
 interface TwitterSidebarButton {
   title: string,
@@ -58,6 +63,22 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
 ];
 
 export default function Home() {
+
+  const onLoginWithGoogle = useCallback(async (cred: CredentialResponse) => {
+    const googleToken = cred.credential;
+    if (!googleToken) return toast.error("Error while Google Login!!!");
+
+    const { verifyGoogleToken } = await graphqlClient.request(verifyUserGoogleOAuthTokenQuery, { token: googleToken });
+    toast.success("Account Verify Successfully");
+
+    if (verifyGoogleToken) {
+      window.localStorage.setItem("X-Auth-Token", verifyGoogleToken);
+    }
+
+  }, []);
+
+
+
   return (
     <div >
       <div className='grid grid-cols-12'>
@@ -93,7 +114,18 @@ export default function Home() {
           <TweetCard />
           <TweetCard />
         </main>
-        <aside className="col-span-3 sticky"></aside>
+        <aside className="col-span-3 sticky">
+          <div className='p-5 bg-slate-800 text-center border ml-5 mt-5 rounded-lg'>
+            <h1 className='mb-5'>New to X? Login with Google</h1>
+            <GoogleLogin
+
+              onSuccess={onLoginWithGoogle}
+              onError={() => {
+                console.log('Login Failed');
+              }}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   )
