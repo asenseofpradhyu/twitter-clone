@@ -13,6 +13,8 @@ import { useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { graphqlClient } from '@/clients/api'
 import { verifyUserGoogleOAuthTokenQuery } from '@/graphql/query/user'
+import { useCurrentUser } from '@/hooks/user'
+import { QueryClient, useQueryClient } from '@tanstack/react-query'
 
 interface TwitterSidebarButton {
   title: string,
@@ -64,6 +66,9 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
 
 export default function Home() {
 
+  const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
+
   const onLoginWithGoogle = useCallback(async (cred: CredentialResponse) => {
     const googleToken = cred.credential;
     if (!googleToken) return toast.error("Error while Google Login!!!");
@@ -75,14 +80,15 @@ export default function Home() {
       window.localStorage.setItem("X-Auth-Token", verifyGoogleToken);
     }
 
-  }, []);
+    await queryClient.invalidateQueries(['current-user']);
+  }, [queryClient]);
 
 
 
   return (
     <div >
       <div className='grid grid-cols-12'>
-        <aside className="col-span-3 pt-2 ml-28 px-4 self-start sticky top-0">
+        <aside className="col-span-3 pt-2 ml-28 px-4 self-start sticky top-0 h-screen relative">
           <div className='text-3xl h-fit w-fit hover:bg-gray-800 rounded-full p-4 cursor-pointer transition-all'>
             <FaXTwitter />
           </div>
@@ -90,10 +96,21 @@ export default function Home() {
             <ul>
               {sidebarMenuItems.map((menuItems) => <li className='flex items-center justify-start py-3 px-3 pr-6 gap-4 cursor-pointer hover:bg-gray-800 rounded-full w-fit' key={menuItems.title}><span className='text-2xl'>{menuItems.icon}</span><span>{menuItems.title}</span></li>)}
             </ul>
+
           </div>
           <div className='pr-3 mt-4'>
             <button className='bg-[#1d9bf0] p-4 w-full text-lg rounded-full font-semibold'>Post</button>
           </div>
+          {user && user.profileImageURl && <div className='flex items-center absolute bottom-0 p-2 rounded-full hover:bg-slate-800 cursor-pointer'>
+            <Image
+              src={user.profileImageURl}
+              height={50}
+              width={50}
+              alt='User Profile Image'
+              className='rounded-full mr-1'
+            />
+            <h3 className='overflow-hidden truncate'>{user.firstName} {user.lastName}</h3>
+          </div>}
         </aside>
         <main className="col-span-5 border-r-[1px] border-l-[1px] border-gray-400">
           <TweetCard />
@@ -115,7 +132,7 @@ export default function Home() {
           <TweetCard />
         </main>
         <aside className="col-span-3 sticky">
-          <div className='p-5 bg-slate-800 text-center border ml-5 mt-5 rounded-lg'>
+          {!user && <div className='p-5 bg-slate-800 text-center border ml-5 mt-5 rounded-lg'>
             <h1 className='mb-5'>New to X? Login with Google</h1>
             <GoogleLogin
 
@@ -124,7 +141,7 @@ export default function Home() {
                 console.log('Login Failed');
               }}
             />
-          </div>
+          </div>}
         </aside>
       </div>
     </div>

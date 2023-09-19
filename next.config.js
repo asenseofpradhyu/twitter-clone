@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains:["avatars.githubusercontent.com"],
+    domains:["avatars.githubusercontent.com", "lh3.googleusercontent.com"],
   },
   env: {
     GRAPHQL_URL: 'http://localhost:8000/graphql',
