@@ -170,16 +170,40 @@ const TwitterLayout: React.FC<TwitterLayoutProps> = (props) => {
 
             </main>
             <aside className="col-span-0 sm:col-span-3 sticky">
-                {!user && <div className='p-5 bg-slate-800 text-center border ml-5 mt-5 rounded-lg'>
-                    <h1 className='mb-5'>New to X? Login with Google</h1>
-                    <GoogleLogin
-
-                        onSuccess={onLoginWithGoogle}
-                        onError={() => {
-                            console.log('Login Failed');
-                        }}
-                    />
-                </div>}
+                {user ? (
+                    <div className="p-5  rounded-lg">
+                        <h1 className="my-2 text-2xl">New to Twitter?</h1>
+                        <GoogleLogin onSuccess={onLoginWithGoogle} />
+                    </div>
+                ) : (
+                    <div className="px-4 py-3 bg-slate-800 ml-3 rounded-lg">
+                        <h1 className="my-2 text-xl mb-5">{user?.recommendedUsers.length > 0 ? "Users you may know" : "Login to view recommended users"}</h1>
+                        {user?.recommendedUsers?.map((el: any) => (
+                            <div className="flex items-center gap-3 mt-2" key={el?.id}>
+                                {el?.profileImageURL && (
+                                    <Image
+                                        src={el?.profileImageURL}
+                                        alt="user-image"
+                                        className="rounded-full"
+                                        width={60}
+                                        height={60}
+                                    />
+                                )}
+                                <div>
+                                    <div className="text-lg">
+                                        {el?.firstName} {el?.lastName}
+                                    </div>
+                                    <Link
+                                        href={`/${el?.id}`}
+                                        className="bg-white text-black text-sm px-5 py-1 w-full rounded-lg"
+                                    >
+                                        View
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </aside>
         </div></div>
     );

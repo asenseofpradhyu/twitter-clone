@@ -15,7 +15,9 @@ import { Tweet } from '@/gql/graphql'
 import TwitterLayout from '@/components/Layout/TwitterLayout'
 import { GetServerSideProps } from 'next'
 import { graphqlClient } from '@/clients/api'
-import { getAllTweetQuery } from '@/graphql/query/tweet'
+import { getAllTweetQuery, getSignedURLForTweetQuery } from '@/graphql/query/tweet'
+import axios from 'axios'
+import toast from 'react-hot-toast'
 
 interface homeProps {
   tweets?: Tweet[]
@@ -25,23 +27,65 @@ export default function Home(props: homeProps) {
 
   const { user } = useCurrentUser();
   // const { tweets = [] } = useGetAllTweets();
-  const { mutate } = useCreateTweetMutation();
+  const { mutateAsync } = useCreateTweetMutation();
+  const { tweets = props.tweets as Tweet[] } = useGetAllTweets();
 
   const [content, setContent] = useState('');
+  const [imageURL, setimageURL] = useState('');
+
+
+  const handleInputChange = useCallback((input: HTMLInputElement) => {
+    return async (event: Event) => {
+      event.preventDefault();
+
+      const files: File | undefined | null = input.files?.item(0);
+
+      if (!files) return;
+
+      const { getSignedURLForTweet } = await graphqlClient.request(getSignedURLForTweetQuery, {
+        imageName: files.name,
+        imageType: files.type
+      });
+
+      if (getSignedURLForTweet) {
+        toast.loading('Uploading...', { id: '1' });
+        await axios.put(getSignedURLForTweet, files, {
+          headers: {
+            'Content-Type': files.type
+          }
+        })
+        toast.success('Uploaded Done', { id: '1' });
+        const url = new URL(getSignedURLForTweet);
+        const myFilePath = `${url.origin}${url.pathname}`;
+        setimageURL(myFilePath);
+      }
+      console.log(input.files);
+    }
+  }, []);
+
+
 
   const onSelectImage = useCallback(() => {
 
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
-    input.click();
-  }, []);
 
-  const onCreateTweet = useCallback(() => {
-    mutate({
-      content
+    const handler = handleInputChange(input);
+
+    input.addEventListener('change', handleInputChange(input));
+
+    input.click();
+  }, [handleInputChange]);
+
+  const onCreateTweet = useCallback(async () => {
+    mutateAsync({
+      content,
+      imageURL
     })
-  }, [content, mutate]);
+    setContent("");
+    setimageURL("");
+  }, [content, mutateAsync, imageURL]);
 
 
 
@@ -64,6 +108,7 @@ export default function Home(props: homeProps) {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               ></textarea>
+              {imageURL && <Image src={imageURL} alt='Image' width={400} height={400} />}
               <div className='flex justify-between items-center text-[22px]'>
                 <BiImage onClick={onSelectImage} />
                 <button className='bg-[#1d9bf0] px-4 py-2 text-sm rounded-full font-semibold'
@@ -74,7 +119,7 @@ export default function Home(props: homeProps) {
         </div>
 
         {
-          props.tweets?.map(tweet => <TweetCard key={tweet?.tweetID} data={tweet as Tweet} />)
+          tweets?.map(tweet => <TweetCard key={tweet?.tweetID} data={tweet as Tweet} />)
         }
 
       </TwitterLayout>

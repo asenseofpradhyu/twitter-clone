@@ -28,6 +28,9 @@ const TweetCard: React.FC<TweetCardProps> = (props) => {
                 </div>
                 <div className="mt-2">
                     <p>{data.content}</p>
+                    {
+                        data.imageURL && <Image src={data.imageURL} alt="tweet Image" width={400} height={400} />
+                    }
                 </div>
                 <div className="flex align-center justify-between mt-5 p-2  w-[90%]">
                     <div>
